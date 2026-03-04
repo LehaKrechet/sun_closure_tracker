@@ -1,0 +1,9 @@
+@startuml Example
+class Image
+Image <-- Sun
+Image <-- Cloud
+Sun --> Solver
+Cloud --> Solver
+Solver --> Engine
+
+@enduml
