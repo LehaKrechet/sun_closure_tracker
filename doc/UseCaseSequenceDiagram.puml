@@ -1,0 +1,7 @@
+@startuml
+FooEngine <-- Solver: start command
+FooEngine <-- Solver: stop command
+Solver <-- FooCloudRecogniser: Cloud params
+Solver <-- FooSunRecogniser: Sun params
+Solver <-- FooCmdReceiver: Command
+@enduml
