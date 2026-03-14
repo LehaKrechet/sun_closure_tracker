@@ -1,5 +1,14 @@
 #include <iostream>
+#include "Engine.h"
+#include "Receiver.h"
 
 int main(){
-    std::cout << "Hello world";
+    FooCmdReceiver reseiver;
+    FooEngine engine;
+    std::string cmd  = reseiver.receiver();
+    if (cmd  == "start"){
+        engine.start();
+    }else{
+        engine.stop();
+    }
 }

@@ -11,6 +11,7 @@ add_executable(sun_closure_traker
     src/cloud.cpp
     src/engine.cpp
     src/image.cpp
-    src/solver.cpp)
+    src/solver.cpp
+    src/receiver.cpp)
 
 target_include_directories(sun_closure_traker PRIVATE include)
