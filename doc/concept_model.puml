@@ -1,9 +1,31 @@
 @startuml Example
-class Image
-Image <-- Sun
-Image <-- Cloud
-Sun --> Solver
-Cloud --> Solver
-Solver --> Engine
+class FooSunRecogniser {
+  float position
+  float speed
+}
+class FooCloudRecogniser {
+  float position
+  float speed
+}
+AEngine --* Solver
+ACmdReceiver --* Solver
+Solver *-- ARecogniser
+ARecogniser <|-- FooCloudRecogniser
+ARecogniser <|-- FooSunRecogniser
+AEngine <|-- FooEngine
+ACmdReceiver <|-- FooCmdReceiver
+
+FooCloudRecogniser : recognise()
+FooSunRecogniser : recognise()
+ARecogniser : recognise()
+
+ACmdReceiver : receiver()
+FooCmdReceiver : receiver()
+
+AEngine : start()
+AEngine : stop()
+
+FooEngine : start()
+FooEngine : stop()
 
 @enduml
