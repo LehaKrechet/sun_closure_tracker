@@ -10,10 +10,8 @@ find_package(OpenCV REQUIRED)
 
 add_executable(sun_closure_traker
     src/main.cpp
-    src/sun.cpp
-    src/cloud.cpp
     src/engine.cpp
-    src/image.cpp
+    src/recogniser.cpp
     src/solver.cpp
     src/receiver.cpp)
 

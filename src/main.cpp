@@ -47,7 +47,6 @@ int main() {
         }
     }
     
-    // Освобождаем ресурсы
     cap.release();
     cv::destroyAllWindows();
     
