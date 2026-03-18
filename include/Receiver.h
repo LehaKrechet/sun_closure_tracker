@@ -2,11 +2,13 @@
 #pragma once
 class ACmdReceiver{
     public:
-        std::string receiver();
+        virtual std::string receiver() = 0;
+        virtual ~ACmdReceiver() = default;
+
 
 };
 
-class FooCmdReceiver{
+class FooCmdReceiver : public ACmdReceiver{
     public:
         std::string receiver();
 };

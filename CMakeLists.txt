@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDART_REQUIRED ON)
 find_package(OpenCV REQUIRED)
 
 add_executable(sun_closure_traker
+    src/app.cpp
     src/main.cpp
     src/engine.cpp
     src/recogniser.cpp
