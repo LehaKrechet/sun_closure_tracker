@@ -12,7 +12,7 @@ add_executable(sun_closure_traker
     src/app.cpp
     src/main.cpp
     src/engine.cpp
-    src/recogniser.cpp
+    src/recognizer.cpp
     src/solver.cpp
     src/receiver.cpp)
 
