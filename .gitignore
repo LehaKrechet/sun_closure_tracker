@@ -1,4 +1,5 @@
 build/*
+net/build/*
 !build/.gitkeep
 image/foto.png
 .vscode/
