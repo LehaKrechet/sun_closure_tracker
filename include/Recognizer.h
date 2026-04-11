@@ -5,9 +5,11 @@
 class ARecogniser{
     protected:
         std::vector<cv::Rect> cloud_boxes;
+        cv::Rect sun_box;
     public:
         virtual void recognize(cv::Mat image) = 0;
         virtual std::vector<cv::Rect> getCloudBoxes() const { return cloud_boxes; }
+        virtual cv::Rect getSunBox() const { return sun_box; }        
 };
 
 class FooSunRecognizer : public ARecogniser{

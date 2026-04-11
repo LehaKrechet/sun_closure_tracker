@@ -28,7 +28,6 @@ int App::run(){
     
     while (true) {
         cap >> frame;
-        
         if (frame.empty()) {
             std::cerr << "Ошибка: Не удалось получить кадр с камеры!" << std::endl;
             break;
@@ -44,6 +43,7 @@ int App::run(){
                 lastSaveTime = currentTime;
 
                 image = cv::imread("../image/foto.png");
+                // image = cv::imread("../image/Sky1.png");
                 if (!image.empty()) {
                     
                 recogniser->recognize(image);
@@ -51,15 +51,13 @@ int App::run(){
                     // Визуализация
                     cv::rectangle(image, box, cv::Scalar(0,255,0), 2);
                 }
+                cv::rectangle(image, recogniser->getSunBox() , cv::Scalar(0,0,255), 3);
                 cv::imshow("Clouds", image);
 
                 }
-                }
-            }  
+            }
+        }  
         
-
-        
-
         if (cv::waitKey(1) == 27) {
             std::cout << "Выход из программы..." << std::endl;
             break;
