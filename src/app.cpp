@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <Recognizer.h>
+#include <Sendler.h>
 
 int App::run(){
     // std::string cmd  = receiver -> receiver();
@@ -10,7 +11,7 @@ int App::run(){
     // }else{
     //     engine->stop();
     // }
-
+    std::string response = sendler -> send("Start");
     cv::VideoCapture cap(0);
     
     if (!cap.isOpened()) {

@@ -1,3 +1,4 @@
 build/*
+net/build/*
 !build/.gitkeep
 .vscode/
