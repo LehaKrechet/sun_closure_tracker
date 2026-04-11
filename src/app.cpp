@@ -43,7 +43,7 @@ int App::run(){
                 lastSaveTime = currentTime;
 
                 image = cv::imread("../image/foto.png");
-                //image = cv::imread("../image/Sky1.png");
+                // image = cv::imread("../image/Sky1.png");
                 if (!image.empty()) {
                     
                 recogniser->recognize(image);
