@@ -5,13 +5,10 @@
 #include <Sendler.h>
 
 int App::run(){
-    // std::string cmd  = receiver -> receiver();
-    // if (cmd  == "start"){
-    //     engine->start();
-    // }else{
-    //     engine->stop();
-    // }
-    std::string response = sendler -> send("Start");
+    
+    std::string response = sendler -> send("stop");
+    bool engine_state = 0;
+
     cv::VideoCapture cap(0);
     
     if (!cap.isOpened()) {
@@ -48,6 +45,21 @@ int App::run(){
                 if (!image.empty()) {
                     
                 recogniser->recognize(image);
+                int size_vec_box = recogniser->getCloudBoxes().size();
+                bool hasClouds = (size_vec_box > 0);
+
+                if (hasClouds && !engine_state) {
+                    // Есть облака и двигатель выключен -> включаем
+                    response = sendler->send("start");
+                    engine_state = true;
+                    std::cout << "START: " << response << std::endl;
+                } else if (!hasClouds && engine_state) {
+                    // Нет облаков и двигатель включен -> выключаем
+                    response = sendler->send("stop");
+                    engine_state = false;
+                    std::cout << "STOP: " << response << std::endl;
+                }                       
+                
                 for (const cv::Rect& box : recogniser->getCloudBoxes()) {
                     // Визуализация
                     cv::rectangle(image, box, cv::Scalar(0,255,0), 2);

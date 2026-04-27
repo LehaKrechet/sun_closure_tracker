@@ -1,5 +1,5 @@
 build/*
-net/build/*
+net/arm_server
 !build/.gitkeep
 image/foto.png
 .vscode/
