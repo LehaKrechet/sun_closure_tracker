@@ -14,9 +14,7 @@ std::string FooSendler::send(std::string msg){
     std::string status = "None";
     
     json data = {
-        {"command", msg},
-        {"id", 666},
-        {"time", 1.00}
+        {"command", msg}
     };
     
     auto response = client.Post("/commands", data.dump(), "application/json");
