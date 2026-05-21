@@ -1,31 +1,79 @@
-@startuml Example
-class FooSunRecogniser {
-  float position
-  float speed
+@startuml Project Architecture
+
+package "Client Application" {
+    class App {
+        - std::unique_ptr<AEngine> engine
+        - std::unique_ptr<ACmdReceiver> receiver
+        - std::unique_ptr<ARecogniser> recogniser
+        - std::unique_ptr<FooSendler> sendler
+        + run() : int
+    }
+
+    interface ARecogniser {
+        + {abstract} recognize(cv::Mat image)
+        + {abstract} getCloudBoxes() : std::vector<cv::Rect>
+        + {abstract} getSunBox() : cv::Rect
+    }
+
+    class FooCloudRecognizer {
+        - std::vector<cv::Rect> cloud_boxes
+        - cv::Rect sun_box
+        + recognize(cv::Mat image)
+    }
+
+    interface ACmdReceiver {
+        + {abstract} receiver() : std::string
+    }
+
+    class FooCmdReceiver {
+        + receiver() : std::string
+    }
+
+    interface AEngine {
+        + {abstract} start()
+        + {abstract} stop()
+    }
+
+    class FooEngine {
+        + start()
+        + stop()
+    }
+
+    class FooSendler {
+        + send(std::string msg) : std::string
+    }
 }
-class FooCloudRecogniser {
-  float position
-  float speed
+
+package "Remote Server (HTTP)" {
+    class EngineStateMachine {
+        - State state
+        + process_event(start_command)
+        + process_event(stop_command)
+        + get_status_string() : std::string
+    }
+
+    enum State <<enum>> {
+        STOPPED
+        RUNNING
+    }
+    
+    note bottom of EngineStateMachine
+        **Логика автомата мотора:**
+        STOPPED --> RUNNING : "start" / FooEngine::start()
+        RUNNING --> STOPPED : "stop" / FooEngine::stop()
+    end note
 }
-AEngine --* Solver
-ACmdReceiver --* Solver
-Solver *-- ARecogniser
-ARecogniser <|-- FooCloudRecogniser
-ARecogniser <|-- FooSunRecogniser
-AEngine <|-- FooEngine
+
+
+ARecogniser <|-- FooCloudRecognizer
 ACmdReceiver <|-- FooCmdReceiver
+AEngine <|-- FooEngine
 
-FooCloudRecogniser : recognise()
-FooSunRecogniser : recognise()
-ARecogniser : recognise()
+App *-- AEngine
+App *-- ACmdReceiver
+App *-- ARecogniser
+App *-- FooSendler
 
-ACmdReceiver : receiver()
-FooCmdReceiver : receiver()
-
-AEngine : start()
-AEngine : stop()
-
-FooEngine : start()
-FooEngine : stop()
+FooSendler .right.> EngineStateMachine : "POST /commands\n{command: 'start'/'stop'}"
 
 @enduml
