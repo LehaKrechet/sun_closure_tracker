@@ -11,14 +11,9 @@ void FooCloudRecognizer::recognize(cv::Mat image){
         cv::Mat hsv;
         cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
 
-        // 2. Маска облаков с адаптивной бинаризацией (пункт 2.4)
-        cv::Mat grayV;
-        cv::extractChannel(hsv, grayV, 2);               // канал яркости V
+        // 2. Маска облаков (светлые области)
         cv::Mat mask;
-        // Адаптивный порог: блок 75, константа 10, THRESH_BINARY_INV делает яркие области белыми
-        cv::adaptiveThreshold(grayV, mask, 255,
-                              cv::ADAPTIVE_THRESH_GAUSSIAN_C,
-                              cv::THRESH_BINARY_INV, 75, 10);
+        cv::inRange(hsv, cv::Scalar(0, 0, 180), cv::Scalar(180, 60, 255), mask);
 
         // 3. Удаление шума
         cv::GaussianBlur(mask, mask, cv::Size(5,5), 0);
@@ -34,6 +29,13 @@ void FooCloudRecognizer::recognize(cv::Mat image){
         cv::Mat channelV;
         cv::extractChannel(hsv, channelV, 2);
 
+        // Параметры центральной области для поиска солнца
+        cv::Point imageCenter(image.cols / 2, image.rows / 2);
+        double maxDistFromCenter = std::min(image.cols, image.rows) * 0.25; // 25% от размера кадра
+
+        // Максимально допустимый размер контура-кандидата в солнце
+        float maxSunSide = std::min(image.cols, image.rows) * 0.6f; // 60% от размера кадра
+
         for (const std::vector<cv::Point>& cnt : contours) {
             double area = cv::contourArea(cnt);
             if (area < 1000) continue;
@@ -43,6 +45,19 @@ void FooCloudRecognizer::recognize(cv::Mat image){
 
             cloud_boxes.push_back(box);
 
+            // Проверка, находится ли контур в центральной области
+            cv::Point cntCenter(box.x + box.width/2, box.y + box.height/2);
+            double distToCenter = cv::norm(cntCenter - imageCenter);
+            if (distToCenter > maxDistFromCenter) {
+                // Этот контур не солнце
+                continue;
+            }
+
+            // проверка на размер
+            if (box.width > maxSunSide || box.height > maxSunSide) {
+                continue;
+            }
+
             // Вычисление средней яркости области
             cv::Rect safeBox = box & cv::Rect(0, 0, channelV.cols, channelV.rows);
             if (safeBox.area() <= 0) continue;
@@ -51,33 +66,36 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             cv::Scalar meanVal = cv::mean(roi);
             double brightness = meanVal[0];
 
-            // Обновление самого яркого
+            // Обновление самого яркого среди центральных контуров
             if (brightness > maxBrightness) {
                 maxBrightness = brightness;
                 brightestBox = box;
             }
         }
-        // Первичное определение солнца (ярчайший бокс)
+        // Первичное определение солнца - самый яркий центральный и подходящий по размерам контур
         sun_box = brightestBox;
-
+        sunCover = sun_box.empty();  // true - солнце закрыто
         // 6. Трекинг облаков
         // Вычисляем dt (в секундах) между вызовами
         double currentTime = static_cast<double>(cv::getTickCount()) / cv::getTickFrequency();
-        double dt = 1.0; // значение по умолчанию
+        double dt = 1.0;
         if (lastTime > 0.0) {
             dt = currentTime - lastTime;
         }
         lastTime = currentTime;
 
-        // Запоминаем количество треков до добавления новых
+        // Запоминаем количество треков до добавления новых,
         const size_t oldTrackCount = tracks.size();
 
         // 6.1 Предсказание новых положений всех существующих треков
         for (auto& track : tracks) {
             if (track.isInitialized) {
-                track.kf.transitionMatrix.at<float>(0,2) = dt;
-                track.kf.transitionMatrix.at<float>(1,3) = dt;
+                // Обновляем модель перехода с текущим dt
+                track.kf.transitionMatrix.at<float>(0,2) = dt; // x = x + vx*dt
+                track.kf.transitionMatrix.at<float>(1,3) = dt; // y = y + vy*dt
+                // Предсказание
                 cv::Mat predicted = track.kf.predict();
+                // Извлекаем предсказанное состояние: x, y, w, h
                 float x = predicted.at<float>(0);
                 float y = predicted.at<float>(1);
                 float w = predicted.at<float>(4);
@@ -86,11 +104,12 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             }
         }
 
-        // 6.2 Ассоциация предсказанных треков с новыми детекциями
+        // 6.2 Ассоциация предсказанных треков с новыми детекциями 
         std::vector<bool> detectionMatched(cloud_boxes.size(), false);
-        std::vector<bool> trackMatched(oldTrackCount, false);
-        std::vector<int> matchTrackIdx(cloud_boxes.size(), -1);
+        std::vector<bool> trackMatched(oldTrackCount, false); // размер по числу старых треков
+        std::vector<int> matchTrackIdx(cloud_boxes.size(), -1); // для каждой детекции индекс трека
 
+        //сопоставления на основе IoU с порогом
         const float iouThreshold = 0.3f;
         for (size_t d = 0; d < cloud_boxes.size(); ++d) {
             float bestIoU = iouThreshold;
@@ -164,8 +183,7 @@ void FooCloudRecognizer::recognize(cv::Mat image){
 
             float initX = det.x + det.width/2.0f;
             float initY = det.y + det.height/2.0f;
-            kf.statePost = (cv::Mat_<float>(6,1) << initX, initY, 0, 0,
-                            static_cast<float>(det.width), static_cast<float>(det.height));
+            kf.statePost = (cv::Mat_<float>(6,1) << initX, initY, 0, 0, static_cast<float>(det.width), static_cast<float>(det.height));
 
             newTrack.kf = kf;
             newTrack.predictedBox = det;
@@ -188,105 +206,75 @@ void FooCloudRecognizer::recognize(cv::Mat image){
                 return t.missedFrames >= maxMissedFrames || !t.isInitialized;
             }), tracks.end());
 
-        // ... весь предыдущий код без изменений до пункта 7 ...
+        // 7. Прогноз покрытия солнца облаками
+        sunCoveragePredicted = false;
+        timeToCoverage = -1.0;
+        coveringCloudId = -1;
 
-        // 7. Трекинг солнца (пункт 2.5)
-        const double sunBrightnessThreshold = 240.0;   // жёсткий порог: только яркое солнце
-        const double areaTolerance = 0.5;               // допустимое отклонение площади от эталона (50%)
-        bool measurementValid = false;
+        if (sunTrack.isInitialized) {
+            // Текущее состояние солнца (центр, скорость)
+            cv::Mat sunState = sunTrack.kf.statePost;
+            float sunX = sunState.at<float>(0);
+            float sunY = sunState.at<float>(1);
+            float sunVx = sunState.at<float>(2);
+            float sunVy = sunState.at<float>(3);
+            float sunRadius = std::max(sunTrack.updatedBox.width,
+                                       sunTrack.updatedBox.height) / 2.0f;
 
-        // Проверяем, что измерение (brightestBox) похоже на солнце
-        if (!sun_box.empty() && maxBrightness > sunBrightnessThreshold) {
-            if (sunTrack.isInitialized && sunTrack.referenceArea > 0) {
-                double currentArea = sun_box.area();
-                double ratio = currentArea / sunTrack.referenceArea;
-                if (ratio >= (1.0 - areaTolerance) && ratio <= (1.0 + areaTolerance)) {
-                    // Размер близок к эталонному
-                    measurementValid = true;
+            const int minAgeForPrediction = 3; // минимальный возраст трека для прогноза
+            double minTime = 1.0; //  60 c
+
+            for (const auto& track : tracks) {
+                // Пропускаем новые и потеряные треки
+                if (!track.isInitialized || track.age < minAgeForPrediction)
+                    continue;
+
+                // Состояние облака
+                cv::Mat cloudState = track.kf.statePost;
+                float cloudX = cloudState.at<float>(0);
+                float cloudY = cloudState.at<float>(1);
+                float cloudVx = cloudState.at<float>(2);
+                float cloudVy = cloudState.at<float>(3);
+                float cloudRadius = std::max(track.updatedBox.width,
+                                             track.updatedBox.height) / 2.0f;
+
+                // Относительные параметры
+                float dx = cloudX - sunX;
+                float dy = cloudY - sunY;
+                float dvx = cloudVx - sunVx;
+                float dvy = cloudVy - sunVy;
+
+                float dv2 = dvx*dvx + dvy*dvy;
+                if (dv2 < 1e-6f) continue; // нет движения
+
+                // Время до точки максимального сближения 
+                float t = -(dx*dvx + dy*dvy) / dv2;
+                if (t <= 0.0f || t > 1.0f) continue; // уже разошлись или слишком далеко
+
+                // Минимальное расстояние
+                float dx_t = dx + dvx * t;
+                float dy_t = dy + dvy * t;
+                float minDist = std::sqrt(dx_t*dx_t + dy_t*dy_t);
+
+                float criticalDist = cloudRadius + sunRadius;
+                if (minDist < criticalDist && t < minTime) {
+                    minTime = t;
+                    coveringCloudId = track.id;
                 }
-            } else {
-                // Трекер ещё не инициализирован – первое измерение всегда валидно
-                measurementValid = true;
-            }
-        }
-
-        if (!sunTrack.isInitialized) {
-            // 7.1 Инициализация трека солнца, если есть валидное измерение
-            if (measurementValid) {
-                cv::KalmanFilter kf(6, 4, 0);
-                kf.transitionMatrix = (cv::Mat_<float>(6,6) <<
-                    1, 0, dt, 0, 0, 0,
-                    0, 1, 0, dt, 0, 0,
-                    0, 0, 1,  0, 0, 0,
-                    0, 0, 0,  1, 0, 0,
-                    0, 0, 0,  0, 1, 0,
-                    0, 0, 0,  0, 0, 1);
-                kf.measurementMatrix = (cv::Mat_<float>(4,6) <<
-                    1,0,0,0,0,0,
-                    0,1,0,0,0,0,
-                    0,0,0,0,1,0,
-                    0,0,0,0,0,1);
-                cv::setIdentity(kf.processNoiseCov, cv::Scalar::all(1e-2));
-                cv::setIdentity(kf.measurementNoiseCov, cv::Scalar::all(1e-1));
-                cv::setIdentity(kf.errorCovPost, cv::Scalar::all(1));
-
-                float initX = sun_box.x + sun_box.width/2.0f;
-                float initY = sun_box.y + sun_box.height/2.0f;
-                kf.statePost = (cv::Mat_<float>(6,1) << initX, initY, 0, 0,
-                                static_cast<float>(sun_box.width), static_cast<float>(sun_box.height));
-
-                sunTrack.kf = kf;
-                sunTrack.predictedBox = sun_box;
-                sunTrack.updatedBox = sun_box;
-                sunTrack.isInitialized = true;
-                sunTrack.missedFrames = 0;
-                sunTrack.referenceArea = sun_box.area();   // запомнили эталонную площадь
-            }
-        } else {
-            // 7.2 Предсказание положения солнца
-            sunTrack.kf.transitionMatrix.at<float>(0,2) = dt;
-            sunTrack.kf.transitionMatrix.at<float>(1,3) = dt;
-            cv::Mat predicted = sunTrack.kf.predict();
-            float px = predicted.at<float>(0);
-            float py = predicted.at<float>(1);
-            float pw = predicted.at<float>(4);
-            float ph = predicted.at<float>(5);
-            sunTrack.predictedBox = cv::Rect(cvRound(px - pw/2), cvRound(py - ph/2), cvRound(pw), cvRound(ph));
-
-            if (measurementValid) {
-                // Дополнительная проверка расстояния до предсказания (максимум 50 пикселей)
-                cv::Point predCenter(cvRound(px), cvRound(py));
-                cv::Point measCenter(sun_box.x + sun_box.width/2, sun_box.y + sun_box.height/2);
-                double dist = cv::norm(predCenter - measCenter);
-                if (dist < 50.0) {
-                    // 7.3 Обновление трека солнца по измерению
-                    float mx = sun_box.x + sun_box.width/2.0f;
-                    float my = sun_box.y + sun_box.height/2.0f;
-                    float mw = static_cast<float>(sun_box.width);
-                    float mh = static_cast<float>(sun_box.height);
-                    cv::Mat measurement = (cv::Mat_<float>(4,1) << mx, my, mw, mh);
-                    sunTrack.kf.correct(measurement);
-                    sunTrack.missedFrames = 0;
-                } else {
-                    sunTrack.missedFrames++;
-                }
-            } else {
-                sunTrack.missedFrames++;
             }
 
-            // 7.4 Извлечение уточнённого/предсказанного состояния
-            cv::Mat state = sunTrack.kf.statePost;
-            float x = state.at<float>(0);
-            float y = state.at<float>(1);
-            float w = state.at<float>(4);
-            float h = state.at<float>(5);
-            sunTrack.updatedBox = cv::Rect(cvRound(x - w/2), cvRound(y - h/2), cvRound(w), cvRound(h));
-
-            // Используем отслеженное положение солнца вместо сырого brightestBox
-            sun_box = sunTrack.updatedBox;
+            if (minTime <= 1.0) {
+                sunCoveragePredicted = true;
+                timeToCoverage = minTime;
+            }
         }
 
         // cv::imshow("Clouds", image);
         // cv::waitKey(0);
     }
 }
+
+bool FooCloudRecognizer::isSunCoveragePredicted() const {return sunCoveragePredicted;}
+bool FooCloudRecognizer::isSunCovered() const {return sunCover;}
+double FooCloudRecognizer::getTimeToCoverage() const {return timeToCoverage;}
+int FooCloudRecognizer::getCoveringCloudId() const {return coveringCloudId;}
