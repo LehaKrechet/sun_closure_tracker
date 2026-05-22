@@ -7,23 +7,23 @@ void FooCloudRecognizer::recognize(cv::Mat image){
     if (image.empty()) {
         std::cerr << "Ошибка: Не удалось получить фото!" << std::endl;
     }else{
-        // 1. Перевод в HSV
+        // Перевод в HSV
         cv::Mat hsv;
         cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
 
-        // 2. Маска облаков (светлые области)
+        // Маска облаков (светлые области)
         cv::Mat mask;
         cv::inRange(hsv, cv::Scalar(0, 0, 180), cv::Scalar(180, 60, 255), mask);
 
-        // 3. Удаление шума
+        // Удаление шума
         cv::GaussianBlur(mask, mask, cv::Size(5,5), 0);
         cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1,-1), 2);
 
-        // 4. Поиск контуров
+        // Поиск контуров
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-        // 5. Извлечение канала яркости
+        // Извлечение канала яркости
         double maxBrightness = -1.0;
         cv::Rect brightestBox;
         cv::Mat channelV;
@@ -58,7 +58,7 @@ void FooCloudRecognizer::recognize(cv::Mat image){
                 continue;
             }
 
-            // Вычисление средней яркости области
+            // Вычисление средней яркости
             cv::Rect safeBox = box & cv::Rect(0, 0, channelV.cols, channelV.rows);
             if (safeBox.area() <= 0) continue;
 
@@ -66,28 +66,28 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             cv::Scalar meanVal = cv::mean(roi);
             double brightness = meanVal[0];
 
-            // Обновление самого яркого среди центральных контуров
+            // Обновление самого яркого среди центральных
             if (brightness > maxBrightness) {
                 maxBrightness = brightness;
                 brightestBox = box;
             }
         }
-        // Первичное определение солнца - самый яркий центральный и подходящий по размерам контур
         sun_box = brightestBox;
         sunCover = sun_box.empty();  // true - солнце закрыто
-        // 6. Трекинг облаков
+        // Трекинг облаков
         // Вычисляем dt (в секундах) между вызовами
         double currentTime = static_cast<double>(cv::getTickCount()) / cv::getTickFrequency();
         double dt = 1.0;
         if (lastTime > 0.0) {
             dt = currentTime - lastTime;
+            std::cout << "dt: " << dt << std::endl;
         }
         lastTime = currentTime;
 
         // Запоминаем количество треков до добавления новых,
         const size_t oldTrackCount = tracks.size();
 
-        // 6.1 Предсказание новых положений всех существующих треков
+        // Предсказание новых положений всех существующих треков
         for (auto& track : tracks) {
             if (track.isInitialized) {
                 // Обновляем модель перехода с текущим dt
@@ -104,12 +104,12 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             }
         }
 
-        // 6.2 Ассоциация предсказанных треков с новыми детекциями 
+        // Ассоциация предсказанных треков с новыми детекциями 
         std::vector<bool> detectionMatched(cloud_boxes.size(), false);
         std::vector<bool> trackMatched(oldTrackCount, false); // размер по числу старых треков
         std::vector<int> matchTrackIdx(cloud_boxes.size(), -1); // для каждой детекции индекс трека
 
-        //сопоставления на основе IoU с порогом
+        //сопоставления с порогом
         const float iouThreshold = 0.3f;
         for (size_t d = 0; d < cloud_boxes.size(); ++d) {
             float bestIoU = iouThreshold;
@@ -134,7 +134,7 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             }
         }
 
-        // 6.3 Обновление сопоставленных треков
+        // Обновление сопоставленных треков
         for (size_t d = 0; d < cloud_boxes.size(); ++d) {
             if (!detectionMatched[d]) continue;
             int t = matchTrackIdx[d];
@@ -155,7 +155,7 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             tracks[t].updatedBox = cv::Rect(cvRound(x - w/2), cvRound(y - h/2), cvRound(w), cvRound(h));
         }
 
-        // 6.4 Создание новых треков для несопоставленных детекций
+        // Создание новых треков для несопоставленных детекций
         for (size_t d = 0; d < cloud_boxes.size(); ++d) {
             if (detectionMatched[d]) continue;
             cv::Rect det = cloud_boxes[d];
@@ -192,37 +192,31 @@ void FooCloudRecognizer::recognize(cv::Mat image){
             tracks.push_back(newTrack);
         }
 
-        // 6.5 Увеличиваем счётчик пропусков для старых не сопоставленных треков
+        // Увеличиваем счётчик пропусков для старых не сопоставленных треков
         for (size_t t = 0; t < oldTrackCount; ++t) {
             if (!trackMatched[t] && tracks[t].isInitialized) {
                 tracks[t].missedFrames++;
             }
         }
 
-        // 6.6 Удаление треков, не получавших измерений слишком долго
+        // Удаление треков, не получавших измерений слишком долго
         const int maxMissedFrames = 5;
         tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
             [&](const TrackedCloud& t) {
                 return t.missedFrames >= maxMissedFrames || !t.isInitialized;
             }), tracks.end());
 
-        // 7. Прогноз покрытия солнца облаками
+        // Прогноз покрытия солнца 
         sunCoveragePredicted = false;
         timeToCoverage = -1.0;
         coveringCloudId = -1;
-
-        if (sunTrack.isInitialized) {
-            // Текущее состояние солнца (центр, скорость)
-            cv::Mat sunState = sunTrack.kf.statePost;
-            float sunX = sunState.at<float>(0);
-            float sunY = sunState.at<float>(1);
-            float sunVx = sunState.at<float>(2);
-            float sunVy = sunState.at<float>(3);
-            float sunRadius = std::max(sunTrack.updatedBox.width,
-                                       sunTrack.updatedBox.height) / 2.0f;
-
-            const int minAgeForPrediction = 3; // минимальный возраст трека для прогноза
-            double minTime = 1.0; //  60 c
+        if (!sun_box.empty()) {
+            float sunX = sun_box.x + sun_box.width / 2.0f;
+            float sunY = sun_box.y + sun_box.height / 2.0f;
+            float sunRadius = std::max(sun_box.width, sun_box.height) / 2.0f;
+            // bool sunLessCloud = false;
+            const int minAgeForPrediction = 4; // минимальный возраст трека для прогноза
+            double minTime = 3.1; //  60 c
 
             for (const auto& track : tracks) {
                 // Пропускаем новые и потеряные треки
@@ -238,39 +232,35 @@ void FooCloudRecognizer::recognize(cv::Mat image){
                 float cloudRadius = std::max(track.updatedBox.width,
                                              track.updatedBox.height) / 2.0f;
 
-                // Относительные параметры
+                // Вектор от солнца к облаку
                 float dx = cloudX - sunX;
                 float dy = cloudY - sunY;
-                float dvx = cloudVx - sunVx;
-                float dvy = cloudVy - sunVy;
 
-                float dv2 = dvx*dvx + dvy*dvy;
-                if (dv2 < 1e-6f) continue; // нет движения
+                // скорость облака
+                float v2 = cloudVx * cloudVx + cloudVy * cloudVy;
+                if (v2 < 1e-6f) continue; // нет движения  облака
 
-                // Время до точки максимального сближения 
-                float t = -(dx*dvx + dy*dvy) / dv2;
-                if (t <= 0.0f || t > 1.0f) continue; // уже разошлись или слишком далеко
+                // Время до точки максимального сближения
+                float t = -(dx * cloudVx + dy * cloudVy) / v2;
+                if (t <= 0.0f || t > 3.0f) continue; // уже разошлись или слишком далеко
 
                 // Минимальное расстояние
-                float dx_t = dx + dvx * t;
-                float dy_t = dy + dvy * t;
-                float minDist = std::sqrt(dx_t*dx_t + dy_t*dy_t);
+                float dx_t = dx + cloudVx * t;
+                float dy_t = dy + cloudVy * t;
+                float minDist = std::sqrt(dx_t * dx_t + dy_t * dy_t);
 
                 float criticalDist = cloudRadius + sunRadius;
-                if (minDist < criticalDist && t < minTime) {
+                if (minDist < criticalDist && t < minTime && (1.4*sun_box.width*sun_box.height<track.updatedBox.width*track.updatedBox.height)) {
                     minTime = t;
                     coveringCloudId = track.id;
                 }
             }
 
-            if (minTime <= 1.0) {
+            if (minTime <= 3.0) {
                 sunCoveragePredicted = true;
                 timeToCoverage = minTime;
             }
         }
-
-        // cv::imshow("Clouds", image);
-        // cv::waitKey(0);
     }
 }
 
