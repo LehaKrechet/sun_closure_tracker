@@ -42,21 +42,19 @@ int App::run(){
                 lastSaveTime = currentTime;
 
                 image = cv::imread("../image/foto.png");
-                // image = cv::imread("../image/Sky1.png");
                 if (!image.empty()) {
                     
                 recogniser->recognize(image);
-                // int size_vec_box = recogniser->getCloudBoxes().size();   
-                // bool hasClouds = (size_vec_box > 0);                     
+
                 bool hasCoverage = recogniser->isSunCoveragePredicted();
-                bool hasCovered = recogniser->isSunCovered();   
+                bool hasCovered = recogniser->isSunCovered();      
                 if ((hasCoverage||hasCovered) && !engine_state) {
-                    // Есть солнце закрыто(оется) и двигатель выключен -> включаем
+                    // Если солнце закрыто(оется) и двигатель выключен -> включаем
                     response = sendler->send("start");
                     engine_state = true;
                     std::cout << "START: " << response << std::endl;
-                } else if (!hasCovered && engine_state) {
-                    // солнце открыто и двигатель включен -> выключаем
+                } else if (!hasCovered && !hasCoverage && engine_state) {
+                    // солнце открыто и не будет закрыто и двигатель включен -> выключаем
                     response = sendler->send("stop");
                     engine_state = false;
                     std::cout << "STOP: " << response << std::endl;

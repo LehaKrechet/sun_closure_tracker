@@ -16,17 +16,8 @@ class ARecogniser{
         virtual int getCoveringCloudId() const { return -1; }
 };
 
-class FooSunRecognizer : public ARecogniser{
+class FooRecognizer : public ARecogniser{
     private:
-        float position;
-        float speed;
-    public:
-        void recognize();
-};
-
-class FooCloudRecognizer : public ARecogniser{
-    private:
-        // Структура для хранения отслеживаемого облака с фильтром Калмана
         struct TrackedCloud {
             int id;
             cv::KalmanFilter kf;
@@ -41,24 +32,12 @@ class FooCloudRecognizer : public ARecogniser{
         double lastTime = -1.0;
         float speed;
 
-        // Трекер солнца (пункт 2.5)
-        struct TrackedSun {
-            cv::KalmanFilter kf;
-            cv::Rect predictedBox;
-            cv::Rect updatedBox;
-            bool isInitialized = false;
-            int missedFrames = 0;
-        };
-        TrackedSun sunTrack;
-
-        // Прогноз покрытия солнца (пункты 2.3 и 2.6)
         bool sunCoveragePredicted = false;
         bool sunCover = false;
-        double timeToCoverage = -1.0;  // секунды до покрытия
+        double timeToCoverage = -1.0;
         int coveringCloudId = -1;
 
     public:
-        // Методы доступа к прогнозу
         bool isSunCoveragePredicted() const override;
         bool isSunCovered() const override;
         double getTimeToCoverage() const override;
