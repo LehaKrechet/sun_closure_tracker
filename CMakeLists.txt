@@ -27,9 +27,7 @@ FetchContent_MakeAvailable(json)
 add_executable(sun_closure_traker
     src/app.cpp
     src/main.cpp
-    src/engine.cpp
     src/recognizer.cpp
-    src/receiver.cpp
     src/sendler.cpp)
 
 target_include_directories(sun_closure_traker PRIVATE include ${opencv_SOURCE_DIR}/include ${opencv_BINARY_DIR})
