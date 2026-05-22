@@ -10,7 +10,7 @@ int App::run(){
     bool engine_state = 0;
 
     bool useCamera = false;
-    cv::VideoCapture cap(useCamera ? 0 : "d:/SkySun.mp4");  
+    cv::VideoCapture cap(useCamera ? 0 : "../video/SkySun2.mp4");  
     
     if (!cap.isOpened()) {
         std::cerr << "Ошибка: Не удалось открыть веб-камеру!" << std::endl;
