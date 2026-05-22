@@ -5,8 +5,8 @@ project(sun_closure_tracker
     LANGUAGES CXX
     VERSION 1.0.0)
 
-set(CMAKE_CXX_STANDART 17)
-set(CMAKE_CXX_STANDART_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OpenCV REQUIRED)
 
 FetchContent_Declare(
@@ -14,7 +14,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
   GIT_SHALLOW    TRUE
 )
-
+set(HTTPLIB_USE_NON_BLOCKING_GETADDRINFO OFF)
 FetchContent_MakeAvailable(httplib)
 
 
@@ -39,6 +39,7 @@ target_link_libraries(sun_closure_traker PRIVATE
     opencv_imgproc
     opencv_highgui
     opencv_imgcodecs
+    opencv_video
 )
 
 target_link_libraries(sun_closure_traker PRIVATE httplib)

@@ -9,7 +9,8 @@ int App::run(){
     std::string response = sendler -> send("stop");
     bool engine_state = 0;
 
-    cv::VideoCapture cap(0);
+    bool useCamera = false;
+    cv::VideoCapture cap(useCamera ? 0 : "d:/SkySun.mp4");  
     
     if (!cap.isOpened()) {
         std::cerr << "Ошибка: Не удалось открыть веб-камеру!" << std::endl;
@@ -22,9 +23,9 @@ int App::run(){
     cv::Mat frame;
     cv::Mat image;
     double lastSaveTime = cv::getTickCount() / cv::getTickFrequency();
-    const double saveInterval = 1.0; // 1 секунда
+    const double saveInterval = 0.2; // 1 секунда
     
-    while (true) {
+    while (cap.read(frame)) {  //   true /  cap.read(frame)
         cap >> frame;
         if (frame.empty()) {
             std::cerr << "Ошибка: Не удалось получить кадр с камеры!" << std::endl;
@@ -45,16 +46,17 @@ int App::run(){
                 if (!image.empty()) {
                     
                 recogniser->recognize(image);
-                int size_vec_box = recogniser->getCloudBoxes().size();
-                bool hasClouds = (size_vec_box > 0);
-
-                if (hasClouds && !engine_state) {
-                    // Есть облака и двигатель выключен -> включаем
+                // int size_vec_box = recogniser->getCloudBoxes().size();   
+                // bool hasClouds = (size_vec_box > 0);                     
+                bool hasCoverage = recogniser->isSunCoveragePredicted();
+                bool hasCovered = recogniser->isSunCovered();   
+                if ((hasCoverage||hasCovered) && !engine_state) {
+                    // Есть солнце закрыто(оется) и двигатель выключен -> включаем
                     response = sendler->send("start");
                     engine_state = true;
                     std::cout << "START: " << response << std::endl;
-                } else if (!hasClouds && engine_state) {
-                    // Нет облаков и двигатель включен -> выключаем
+                } else if (!hasCovered && engine_state) {
+                    // солнце открыто и двигатель включен -> выключаем
                     response = sendler->send("stop");
                     engine_state = false;
                     std::cout << "STOP: " << response << std::endl;
