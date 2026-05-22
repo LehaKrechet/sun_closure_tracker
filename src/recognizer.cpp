@@ -1,7 +1,7 @@
 #include <Recognizer.h>
 #include <opencv2/opencv.hpp>
 
-void FooCloudRecognizer::recognize(cv::Mat image){
+void FooRecognizer::recognize(cv::Mat image){
     cloud_boxes.clear();
     sun_box = cv::Rect();
     if (image.empty()) {
@@ -80,7 +80,6 @@ void FooCloudRecognizer::recognize(cv::Mat image){
         double dt = 1.0;
         if (lastTime > 0.0) {
             dt = currentTime - lastTime;
-            std::cout << "dt: " << dt << std::endl;
         }
         lastTime = currentTime;
 
@@ -264,7 +263,7 @@ void FooCloudRecognizer::recognize(cv::Mat image){
     }
 }
 
-bool FooCloudRecognizer::isSunCoveragePredicted() const {return sunCoveragePredicted;}
-bool FooCloudRecognizer::isSunCovered() const {return sunCover;}
-double FooCloudRecognizer::getTimeToCoverage() const {return timeToCoverage;}
-int FooCloudRecognizer::getCoveringCloudId() const {return coveringCloudId;}
+bool FooRecognizer::isSunCoveragePredicted() const {return sunCoveragePredicted;}
+bool FooRecognizer::isSunCovered() const {return sunCover;}
+double FooRecognizer::getTimeToCoverage() const {return timeToCoverage;}
+int FooRecognizer::getCoveringCloudId() const {return coveringCloudId;}

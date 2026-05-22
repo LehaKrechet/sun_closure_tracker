@@ -16,15 +16,7 @@ class ARecogniser{
         virtual int getCoveringCloudId() const { return -1; }
 };
 
-class FooSunRecognizer : public ARecogniser{
-    private:
-        float position;
-        float speed;
-    public:
-        void recognize();
-};
-
-class FooCloudRecognizer : public ARecogniser{
+class FooRecognizer : public ARecogniser{
     private:
         struct TrackedCloud {
             int id;
