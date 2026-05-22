@@ -75,7 +75,7 @@ void FooRecognizer::recognize(cv::Mat image){
         sun_box = brightestBox;
         sunCover = sun_box.empty();  // true - солнце закрыто
         // Трекинг облаков
-        // Вычисляем dt (в секундах) между вызовами
+        // Вычисляем dt между вызовами
         double currentTime = static_cast<double>(cv::getTickCount()) / cv::getTickFrequency();
         double dt = 1.0;
         if (lastTime > 0.0) {
@@ -89,12 +89,10 @@ void FooRecognizer::recognize(cv::Mat image){
         // Предсказание новых положений всех существующих треков
         for (auto& track : tracks) {
             if (track.isInitialized) {
-                // Обновляем модель перехода с текущим dt
                 track.kf.transitionMatrix.at<float>(0,2) = dt; // x = x + vx*dt
                 track.kf.transitionMatrix.at<float>(1,3) = dt; // y = y + vy*dt
                 // Предсказание
                 cv::Mat predicted = track.kf.predict();
-                // Извлекаем предсказанное состояние: x, y, w, h
                 float x = predicted.at<float>(0);
                 float y = predicted.at<float>(1);
                 float w = predicted.at<float>(4);
@@ -103,7 +101,7 @@ void FooRecognizer::recognize(cv::Mat image){
             }
         }
 
-        // Ассоциация предсказанных треков с новыми детекциями 
+        // Ассоциация предсказанных треков с новыми
         std::vector<bool> detectionMatched(cloud_boxes.size(), false);
         std::vector<bool> trackMatched(oldTrackCount, false); // размер по числу старых треков
         std::vector<int> matchTrackIdx(cloud_boxes.size(), -1); // для каждой детекции индекс трека
