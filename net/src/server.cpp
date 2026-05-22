@@ -49,6 +49,8 @@ public:
 
 int main() {
     httplib::Server svr;
+    std::string ip = "192.168.1.24";
+    int port = 8080;
     
     EngineStateMachine engine_fsm;
     
@@ -103,7 +105,7 @@ int main() {
         }
     });
 
-    std::cout << "Server listening on http://0.0.0.0:8080" << std::endl;
-    svr.listen("0.0.0.0", 8080);
+    std::cout << "Server listening on http://" << ip << ":" << port << std::endl;
+    svr.listen(ip, port);
     return 0;
 }

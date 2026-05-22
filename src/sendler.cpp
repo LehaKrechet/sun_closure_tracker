@@ -9,8 +9,7 @@
 using json = nlohmann::json;
 
 std::string FooSendler::send(std::string msg){
-    httplib::Client client("http://localhost:8080");
-    // std::string msg = "test";
+    httplib::Client client("http://192.168.1.24:8080");
     std::string status = "None";
     
     json data = {
@@ -29,6 +28,5 @@ std::string FooSendler::send(std::string msg){
         std::cout << "Connection failed" << std::endl;
     }
     
-    std::this_thread::sleep_for(std::chrono::seconds(1));
     return status;
 }

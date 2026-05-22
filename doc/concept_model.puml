@@ -1,11 +1,9 @@
-@startuml Project Architecture
+@startuml concept_model
 
 package "Client Application" {
     class App {
-        - std::unique_ptr<AEngine> engine
-        - std::unique_ptr<ACmdReceiver> receiver
-        - std::unique_ptr<ARecogniser> recogniser
-        - std::unique_ptr<FooSendler> sendler
+        - unique_ptr<ARecogniser> recogniser
+        - unique_ptr<ASendler> sendler
         + run() : int
     }
 
@@ -15,32 +13,17 @@ package "Client Application" {
         + {abstract} getSunBox() : cv::Rect
     }
 
-    class FooCloudRecognizer {
-        - std::vector<cv::Rect> cloud_boxes
-        - cv::Rect sun_box
+    class FooRecognizer {
+        - std::vector<TrackedCloud> tracks
         + recognize(cv::Mat image)
     }
 
-    interface ACmdReceiver {
-        + {abstract} receiver() : std::string
-    }
-
-    class FooCmdReceiver {
-        + receiver() : std::string
-    }
-
-    interface AEngine {
-        + {abstract} start()
-        + {abstract} stop()
-    }
-
-    class FooEngine {
-        + start()
-        + stop()
+    interface ASendler {
+        + {abstract} send(string msg) : std::string
     }
 
     class FooSendler {
-        + send(std::string msg) : std::string
+        + send(string msg) : std::string
     }
 }
 
@@ -56,24 +39,20 @@ package "Remote Server (HTTP)" {
         STOPPED
         RUNNING
     }
-    
-    note bottom of EngineStateMachine
-        **Логика автомата мотора:**
-        STOPPED --> RUNNING : "start" / FooEngine::start()
-        RUNNING --> STOPPED : "stop" / FooEngine::stop()
-    end note
 }
 
+' Связи реализации
+ARecogniser <|-- FooRecognizer
+ASendler <|-- FooSendler
 
-ARecogniser <|-- FooCloudRecognizer
-ACmdReceiver <|-- FooCmdReceiver
-AEngine <|-- FooEngine
+' Связи владения
+App o--> ARecogniser
+App o--> ASendler
 
-App *-- AEngine
-App *-- ACmdReceiver
-App *-- ARecogniser
-App *-- FooSendler
-
-FooSendler .right.> EngineStateMachine : "POST /commands\n{command: 'start'/'stop'}"
+note bottom of EngineStateMachine
+    Логика:
+    STOPPED --> RUNNING : "start"
+    RUNNING --> STOPPED : "stop"
+end note
 
 @enduml

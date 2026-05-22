@@ -10,7 +10,7 @@ int App::run(){
     bool engine_state = 0;
 
     bool useCamera = false;
-    cv::VideoCapture cap(useCamera ? 0 : "d:/SkySun.mp4");  
+    cv::VideoCapture cap(useCamera ? 0 : "../video/SkySun.mp4");  
     
     if (!cap.isOpened()) {
         std::cerr << "Ошибка: Не удалось открыть веб-камеру!" << std::endl;
@@ -23,7 +23,7 @@ int App::run(){
     cv::Mat frame;
     cv::Mat image;
     double lastSaveTime = cv::getTickCount() / cv::getTickFrequency();
-    const double saveInterval = 0.2; // 1 секунда
+    const double saveInterval = 0.01; // интервал между сохранениями в секундах (0.01 = 10 мс)
     
     while (cap.read(frame)) {  //   true /  cap.read(frame)
         cap >> frame;
@@ -38,7 +38,7 @@ int App::run(){
         
         if (currentTime-lastSaveTime>=saveInterval){
             if(cv::imwrite("../image/foto.png", frame)){
-                std::cout << "Cadr save" << std::endl;
+                // std::cout << "Cadr save" << std::endl;
                 lastSaveTime = currentTime;
 
                 image = cv::imread("../image/foto.png");
@@ -54,7 +54,7 @@ int App::run(){
                     engine_state = true;
                     std::cout << "START: " << response << std::endl;
                 } else if (!hasCovered && !hasCoverage && engine_state) {
-                    // солнце открыто и не будет закрыто и двигатель включен -> выключаем
+                    // Солнце открыто и не будет закрыто и двигатель включен -> выключаем
                     response = sendler->send("stop");
                     engine_state = false;
                     std::cout << "STOP: " << response << std::endl;
