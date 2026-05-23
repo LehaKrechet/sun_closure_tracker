@@ -8,9 +8,13 @@ int App::run(){
     
     std::string response = sendler -> send("stop");
     bool engine_state = 0;
+    cv::VideoCapture cap;
 
-    bool useCamera = false;
-    cv::VideoCapture cap(useCamera ? 0 : "../video/SkySun.mp4");  
+    if (useCamera) {
+        cap.open(0);
+    }else {
+        cap.open(path);
+    }
     
     if (!cap.isOpened()) {
         std::cerr << "Ошибка: Не удалось открыть веб-камеру!" << std::endl;
