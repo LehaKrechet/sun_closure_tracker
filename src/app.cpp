@@ -37,14 +37,9 @@ int App::run(){
         double currentTime = cv::getTickCount() / cv::getTickFrequency();
         
         if (currentTime-lastSaveTime>=saveInterval){
-            if(cv::imwrite("../image/foto.png", frame)){
-                // std::cout << "Cadr save" << std::endl;
                 lastSaveTime = currentTime;
-
-                image = cv::imread("../image/foto.png");
-                if (!image.empty()) {
-                    
-                recogniser->recognize(image);
+   
+                recogniser->recognize(frame);
 
                 bool hasCoverage = recogniser->isSunCoveragePredicted();
                 bool hasCovered = recogniser->isSunCovered();      
@@ -62,13 +57,10 @@ int App::run(){
                 
                 for (const cv::Rect& box : recogniser->getCloudBoxes()) {
                     // Визуализация
-                    cv::rectangle(image, box, cv::Scalar(0,255,0), 2);
+                    cv::rectangle(frame, box, cv::Scalar(0,255,0), 2);
                 }
-                cv::rectangle(image, recogniser->getSunBox() , cv::Scalar(0,0,255), 3);
-                cv::imshow("Clouds", image);
-
-                }
-            }
+                cv::rectangle(frame, recogniser->getSunBox() , cv::Scalar(0,0,255), 3);
+                cv::imshow("Clouds", frame);
         }  
         
         if (cv::waitKey(1) == 27) {
