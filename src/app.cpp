@@ -23,7 +23,7 @@ int App::run(){
     cv::Mat frame;
     cv::Mat image;
     double lastSaveTime = cv::getTickCount() / cv::getTickFrequency();
-    const double saveInterval = 0.01; // интервал между сохранениями в секундах (0.01 = 10 мс)
+    const double saveInterval = 0.133; // интервал между сохранениями в секундах (0.01 = 10 мс)
     
     while (cap.read(frame)) {  //   true /  cap.read(frame)
         cap >> frame;
@@ -73,11 +73,14 @@ int App::run(){
         
         if (cv::waitKey(1) == 27) {
             std::cout << "Выход из программы..." << std::endl;
+            response = sendler->send("stop");
             break;
         }
     }
+
     
     cap.release();
     cv::destroyAllWindows();
+    
     return 0;
 }
