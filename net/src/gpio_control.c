@@ -32,7 +32,7 @@ void gpio_write(const char *dev_name, int offset, uint8_t value)
     struct gpiohandle_data data;
     int fd, ret;
     printf("Write value %d to GPIO at offset %d (OUTPUT mode) on chip %s\n", value, offset, dev_name);
-    fd = open(dev_name, O_RDONLY);
+    fd = open(dev_name, O_RDWR);
     if (fd < 0)
     {
         printf("Unabled to open %s: %s", dev_name, strerror(errno));
@@ -53,10 +53,8 @@ void gpio_write(const char *dev_name, int offset, uint8_t value)
     if (ret == -1)
     {
         printf("Unable to set line value using ioctl : %s", strerror(errno));
-    }
-    else
-    {
-         usleep(2000000);
+    }else{
+        usleep(1000);
     }
     close(rq.fd);
 }

@@ -49,7 +49,7 @@ public:
 
 int main() {
     httplib::Server svr;
-    std::string ip = "192.168.1.24";
+    std::string ip = "192.168.1.101";
     int port = 8080;
     
     EngineStateMachine engine_fsm;
