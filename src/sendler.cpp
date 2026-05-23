@@ -9,7 +9,8 @@
 using json = nlohmann::json;
 
 std::string FooSendler::send(std::string msg){
-    httplib::Client client("http://192.168.1.101:8080");
+    std::cout <<" http://"+m_ip+":"+m_port << std::endl;
+    httplib::Client client("http://"+m_ip+":"+m_port);
     std::string status = "None";
     
     json data = {

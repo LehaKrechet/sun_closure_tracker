@@ -47,10 +47,19 @@ public:
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
     httplib::Server svr;
-    std::string ip = "192.168.1.101";
+        // Значения по умолчанию
+    std::string ip = "0.0.0.0";  // Слушаем все интерфейсы
     int port = 8080;
+    
+    // Парсим параметры командной строки
+    if (argc >= 2) {
+        ip = argv[1];  // Первый параметр - IP
+    }
+    if (argc >= 3) {
+        port = std::stoi(argv[2]);  // Второй параметр - порт
+    }
     
     EngineStateMachine engine_fsm;
     
